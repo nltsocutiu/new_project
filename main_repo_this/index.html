@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="vi" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TravelPro - Chi tiết Tour & Đặt Vé</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <style>
+        /* === Custom Animations & Styles === */
+        :root { --transition-speed: 0.3s; }
+        
+        body { 
+            transition: background-color var(--transition-speed), color var(--transition-speed); 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Auth Screen Styles */
+        .auth-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .auth-card { width: 100%; max-width: 400px; border-radius: 15px; }
+
+        /* Card Hover Effect */
+        .tour-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            border: none;
+            overflow: hidden;
+            height: 100%;
+            border-radius: 12px;
+            position: relative;
+        }
+        .tour-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+        .tour-card img {
+            height: 200px;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+            width: 100%;
+        }
+        .tour-card:hover img { transform: scale(1.1); }
+
+        /* Button Overlay Styles */
+        .action-buttons {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-action {
+            transition: all 0.2s;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .btn-action:hover {
+            background: white;
+            transform: scale(1.1);
+        }
+        .btn-heart.active i { color: #dc3545; animation: heartBeat 0.5s; }
+        .btn-cart.active i { color: #198754; }
+
+        .badge-price { z-index: 10; }
+
+        /* Fade In Animation */
+        .fade-in { animation: fadeIn 0.6s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes heartBeat {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+
+        /* Cart & Invoice Styles */
+        .cart-item-img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; }
+        .invoice-header { background: #d1e7dd; border-bottom: 2px dashed #198754; }
+        .dashed-line { border-top: 2px dashed #ccc; margin: 10px 0; }
+
+        /* Detail Modal Styles */
+        .detail-img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        /* Dark Mode Tweaks */
+        [data-bs-theme="dark"] .bg-light { background-color: #2b3035 !important; }
+        [data-bs-theme="dark"] .card { background-color: #212529; border-color: #373b3e; }
+        [data-bs-theme="dark"] .btn-action { background: rgba(33, 37, 41, 0.8); color: white; }
+        [data-bs-theme="dark"] .invoice-header { background: #145538; color: white; border-bottom: 2px dashed #75b798; }
+        
+        .d-none-custom { display: none !important; }
+
+        /* Fix lỗi nút thanh toán bị widget che khuất */
+        .offcanvas { z-index: 10000 !important; }
+        .offcanvas-body { display: flex; flex-direction: column; padding-bottom: 0; }
+        #cartListContainer { flex-grow: 1; overflow-y: auto; padding-bottom: 20px; }
+        
+        /* Table User Styles */
+        .user-avatar { width: 40px; height: 40px; border-radius: 50%; background: #198754; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    </style>
+</head>
+<body class="bg-light">
+
+    <div id="authSection" class="auth-container fade-in">
+        <div class="card auth-card shadow-lg border-0">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <h2 class="text-success fw-bold"><i class="bi bi-airplane-engines-fill"></i> TravelPro</h2>
+                    <p class="text-muted small">Hệ thống quản lý & Đặt Tour</p>
+                </div>
+                <ul class="nav nav-pills nav-fill mb-3" id="authTabs" role="tablist">
+                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#loginTab">Đăng nhập</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#registerTab">Đăng ký</button></li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="loginTab">
+                        <form id="loginForm">
+                            <div class="mb-3"><label class="form-label">Email</label><input type="email" class="form-control" id="loginEmail" required placeholder="admin@gmail.com"></div>
+                            <div class="mb-3"><label class="form-label">Mật khẩu</label><input type="password" class="form-control" id="loginPass" required placeholder="123"></div>
+                            <button type="submit" class="btn btn-success w-100 fw-bold py-2">Đăng nhập ngay</button>
+                            <div class="mt-3 text-center small text-muted">*Admin: admin@gmail.com / 123</div>
+                        </form>
+                    </div>
+                    <div class="tab-pane fade" id="registerTab">
+                        <form id="registerForm">
+                            <div class="mb-3"><label class="form-label">Họ tên</label><input type="text" class="form-control" id="regName" required></div>
+                            <div class="mb-3"><label class="form-label">Email</label><input type="email" class="form-control" id="regEmail" required></div>
+                            <div class="mb-3"><label class="form-label">Mật khẩu</label><input type="password" class="form-control" id="regPass" required></div>
+                            <button type="submit" class="btn btn-primary w-100 fw-bold py-2">Tạo tài khoản</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainApp" class="d-none-custom">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-success sticky-top shadow-sm">
+            <div class="container">
+                <a class="navbar-brand fw-bold" href="#"><i class="bi bi-airplane-engines-fill me-2"></i>TravelPro</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto"></ul>
+                    <div class="d-flex align-items-center gap-3 flex-wrap mt-2 mt-lg-0">
+                        <span class="text-white small d-none d-lg-block">Hi, <b id="userNameDisplay">User</b> <span id="adminBadge" class="badge bg-warning text-dark d-none">ADMIN</span></span>
+                        
+                        <button class="btn btn-sm btn-outline-light d-none" id="btnUserManage" onclick="openUserManager()">
+                            <i class="bi bi-people-fill"></i> Users
+                        </button>
+
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-light active" onclick="setLang('vi')" id="btn-vi">VN</button>
+                            <button class="btn btn-outline-light" onclick="setLang('en')" id="btn-en">EN</button>
+                        </div>
+                        <button class="btn btn-sm btn-outline-light rounded-circle" id="themeToggle"><i class="bi bi-moon-stars-fill"></i></button>
+
+                        <button class="btn btn-warning position-relative rounded-pill px-3 btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasFav">
+                            <i class="bi bi-heart-fill"></i> 
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="favCount">0</span>
+                        </button>
+
+                        <button class="btn btn-primary position-relative rounded-pill px-3 btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCart">
+                            <i class="bi bi-cart-fill"></i> 
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="cartCount">0</span>
+                        </button>
+
+                        <button class="btn btn-sm btn-danger rounded-pill px-3" onclick="logout()"><i class="bi bi-box-arrow-right"></i></button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container py-4">
+            <div class="card shadow-sm mb-4 fade-in">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold" data-i18n="search">Tìm Tour</label>
+                            <div class="input-group"><span class="input-group-text"><i class="bi bi-search"></i></span><input type="text" id="searchInput" class="form-control" placeholder="..."></div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold" data-i18n="duration">Thời lượng (ngày)</label>
+                            <input type="number" id="durationInput" class="form-control" placeholder="Max...">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold" data-i18n="location">Địa điểm</label>
+                            <select id="locationFilter" class="form-select">
+                                <option value="">Tất cả</option>
+                                <option value="Hà Nội">Hà Nội</option>
+                                <option value="HCM">Hồ Chí Minh</option>
+                                <option value="Đà Nẵng">Đà Nẵng</option>
+                                <option value="Đà Lạt">Đà Lạt</option>
+                                <option value="Phú Quốc">Phú Quốc</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold" data-i18n="priceMax">Giá tối đa</label>
+                            <input type="number" id="priceFilter" class="form-control">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button class="btn btn-success w-100 fw-bold d-none" id="btnAddTour" onclick="openModal()"><i class="bi bi-plus-lg"></i> <span data-i18n="addTour">Thêm Tour</span></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="loading" class="text-center py-5">
+                <div class="spinner-grow text-success" role="status"></div>
+                <p class="mt-2 text-muted" data-i18n="loading">Đang tải dữ liệu Tour...</p>
+            </div>
+
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4" id="tourList"></div>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasFav">
+        <div class="offcanvas-header bg-warning text-dark">
+            <h5 class="offcanvas-title fw-bold"><i class="bi bi-bookmark-heart-fill"></i> <span data-i18n="savedTours">Tour quan tâm</span></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body bg-light">
+            <div id="favListContainer" class="d-flex flex-column gap-3"></div>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasCart">
+        <div class="offcanvas-header bg-primary text-white">
+            <h5 class="offcanvas-title fw-bold"><i class="bi bi-cart-check-fill"></i> <span data-i18n="yourCart">Giỏ hàng của bạn</span></h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body bg-light d-flex flex-column">
+            <div id="cartListContainer" class="flex-grow-1 d-flex flex-column gap-3 overflow-auto pb-3">
+                </div>
+            <div class="border-top pt-3 mt-auto">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="fw-bold" data-i18n="total">Tổng tiền:</span>
+                    <h4 class="fw-bold text-success mb-0" id="cartTotalDisplay">$0</h4>
+                </div>
+                <button class="btn btn-success w-100 py-2 fw-bold" onclick="handleCheckout()">
+                    <i class="bi bi-credit-card-2-front-fill"></i> <span data-i18n="checkout">Thanh toán ngay</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="tourModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="modalTitle">Thông tin Tour</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="tourId">
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label class="form-label" data-i18n="tourName">Tên Tour</label><input type="text" id="inpName" class="form-control" required placeholder="VD: Tour Đà Nẵng 3N2Đ"></div>
+                        <div class="col-md-6 mb-3"><label class="form-label" data-i18n="location">Địa điểm</label><input type="text" id="inpLocation" class="form-control" required></div>
+                    </div>
+                    <div class="mb-3"><label class="form-label" data-i18n="image">Hình ảnh (URL)</label><input type="text" id="inpImage" class="form-control" placeholder="https://..."></div>
+                    <div class="row">
+                        <div class="col-6 mb-3"><label class="form-label" data-i18n="price">Giá ($)</label><input type="number" id="inpPrice" class="form-control" required></div>
+                        <div class="col-6 mb-3"><label class="form-label" data-i18n="duration">Thời lượng (ngày)</label><input type="number" id="inpRating" class="form-control" required placeholder="Nhập số ngày..."></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="close">Đóng</button>
+                    <button type="button" class="btn btn-success" onclick="saveTour()" data-i18n="save">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title"><i class="bi bi-people-fill"></i> Quản lý Người dùng</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0 text-center align-middle">
+                            <thead class="table-dark sticky-top">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Họ tên</th>
+                                    <th>Email</th>
+                                    <th>Vai trò</th>
+                                    <th>Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userListBody">
+                                </tbody>
+                        </table>
+                    </div>
+                    <div id="userLoading" class="text-center py-4 d-none">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="detailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-body p-0">
+                    <button type="button" class="btn-close position-absolute top-0 end-0 m-3 bg-white p-2 shadow-sm" style="z-index: 10;" data-bs-dismiss="modal"></button>
+                    <div class="row g-0">
+                        <div class="col-md-6">
+                            <img id="detailImg" src="" class="detail-img h-100 rounded-start" alt="Tour Image" onerror="this.src='https://via.placeholder.com/400'">
+                        </div>
+                        <div class="col-md-6 p-4 d-flex flex-column">
+                            <span class="badge bg-warning text-dark w-auto align-self-start mb-2"><i class="bi bi-star-fill"></i> Tour Hot</span>
+                            <h3 class="fw-bold mb-3" id="detailTitle">Title</h3>
+                            <div class="mb-3 text-muted">
+                                <i class="bi bi-geo-alt-fill text-danger"></i> <span id="detailLocation">Location</span>
+                            </div>
+                            
+                            <p class="text-secondary flex-grow-1">
+                                Khám phá trải nghiệm tuyệt vời với hành trình được thiết kế đặc biệt. 
+                                Tận hưởng dịch vụ đẳng cấp, hướng dẫn viên chuyên nghiệp và những kỷ niệm khó quên.
+                            </p>
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded">
+                                <div>
+                                    <small class="text-muted d-block">Thời lượng</small>
+                                    <strong id="detailDuration">0 ngày</strong>
+                                </div>
+                                <div>
+                                    <small class="text-muted d-block">Giá vé</small>
+                                    <strong class="text-success fs-4" id="detailPrice">$0</strong>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary w-100 fw-bold py-2" id="btnDetailAddToCart">
+                                <i class="bi bi-cart-plus"></i> Thêm vào giỏ ngay
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="noteModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header"><h6 class="modal-title" data-i18n="noteTitle">Ghi chú yêu thích</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="noteTourId">
+                    <textarea id="noteContent" class="form-control" rows="3" placeholder="Ghi chú cá nhân..."></textarea>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-primary btn-sm w-100" onclick="saveNote()" data-i18n="saveNote">Lưu ghi chú</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="invoiceModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header invoice-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-check-circle-fill"></i> Thanh toán thành công!</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="clearCartUI()"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-4">
+                        <h2 class="text-success fw-bold" id="invoiceTotal">$0</h2>
+                        <p class="text-muted small">Mã đơn: <span id="invoiceId">#</span></p>
+                    </div>
+                    <h6 class="fw-bold mb-3 border-bottom pb-2">Chi tiết đơn hàng:</h6>
+                    <div id="invoiceItems" class="small mb-3"></div>
+                    <div class="dashed-line"></div>
+                    <div class="alert alert-success small mb-0">
+                        <i class="bi bi-info-circle"></i> Cảm ơn bạn đã đặt tour! Thông tin vé đã được gửi về email của bạn.
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-success px-4" data-bs-dismiss="modal" onclick="clearCartUI()">Hoàn tất</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="liveToast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage">Thông báo</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // --- CONFIGURATION ---
+        const API_URL = 'https://67c9ea3a102d684575c3f11e.mockapi.io';
+        const ENDPOINT_TOURS = `${API_URL}/touris`; 
+        const ENDPOINT_USERS = `${API_URL}/users`;
+        const ADMIN_EMAIL = "admin@gmail.com";
+
+        // --- DICTIONARY ---
+        const dictionary = {
+            vi: {
+                search: "Tìm Tour", duration: "Thời lượng (ngày)", location: "Địa điểm", priceMax: "Giá tối đa",
+                addTour: "Thêm Tour Mới", loading: "Đang tải dữ liệu...", savedTours: "Tour quan tâm", 
+                yourCart: "Giỏ hàng", total: "Tổng cộng:", checkout: "Thanh toán ngay",
+                tourName: "Tên Tour", image: "Hình ảnh (URL)", price: "Giá ($)", close: "Đóng", save: "Lưu",
+                noteTitle: "Ghi chú", saveNote: "Lưu ghi chú", notePlaceholder: "Ghi chú cho tour này...",
+                msgSaved: "Đã lưu thành công!", msgDeleted: "Đã xóa!", msgAddedFav: "Đã thêm vào yêu thích", msgAddedCart: "Đã thêm vào giỏ hàng",
+                msgWelcome: "Xin chào", msgLoginFail: "Sai email hoặc mật khẩu!", msgRegSuccess: "Đăng ký thành công!",
+                emptyCart: "Giỏ hàng trống", cartCleared: "Thanh toán thành công!"
+            },
+            en: {
+                search: "Search Tour", duration: "Duration (days)", location: "Destination", priceMax: "Max Price",
+                addTour: "Add New Tour", loading: "Loading data...", savedTours: "Saved Tours",
+                yourCart: "Your Cart", total: "Total:", checkout: "Checkout Now",
+                tourName: "Tour Title", image: "Image URL", price: "Price ($)", close: "Close", save: "Save",
+                noteTitle: "Note", saveNote: "Save Note", notePlaceholder: "Note for this tour...",
+                msgSaved: "Saved successfully!", msgDeleted: "Deleted!", msgAddedFav: "Added to favorites", msgAddedCart: "Added to cart",
+                msgWelcome: "Welcome", msgLoginFail: "Wrong email or password!", msgRegSuccess: "Registration successful!",
+                emptyCart: "Cart is empty", cartCleared: "Payment successful!"
+            }
+        };
+
+        // --- STATE ---
+        let appState = {
+            tours: [],
+            currentUser: JSON.parse(localStorage.getItem('currentUser')) || null,
+            favorites: JSON.parse(localStorage.getItem('favTours')) || [], 
+            cart: JSON.parse(localStorage.getItem('cartItems')) || [],
+            lang: localStorage.getItem('appLang') || 'vi',
+            theme: localStorage.getItem('appTheme') || 'light'
+        };
+
+        // --- INIT ---
+        $(document).ready(function() {
+            initApp();
+            
+            // Listeners
+            $('#searchInput, #durationInput, #locationFilter, #priceFilter').on('input change', debounce(filterAndRender, 300));
+            $('#themeToggle').click(toggleTheme);
+            $('#loginForm').submit(handleLogin);
+            $('#registerForm').submit(handleRegister);
+        });
+
+        function initApp() {
+            applyTheme(appState.theme);
+            applyLanguage(appState.lang);
+            
+            if (appState.currentUser) {
+                showMainApp();
+            } else {
+                showAuthScreen();
+            }
+        }
+
+        function showAuthScreen() {
+            $('#authSection').removeClass('d-none-custom');
+            $('#mainApp').addClass('d-none-custom');
+        }
+
+        function showMainApp() {
+            $('#authSection').addClass('d-none-custom');
+            $('#mainApp').removeClass('d-none-custom').addClass('fade-in');
+            $('#userNameDisplay').text(appState.currentUser.name);
+            
+            // Check Admin Rights
+            if (appState.currentUser.email === ADMIN_EMAIL) {
+                $('#btnAddTour').removeClass('d-none');
+                $('#adminBadge').removeClass('d-none');
+                $('#btnUserManage').removeClass('d-none'); // HIỆN NÚT QUẢN LÝ USER
+            } else {
+                $('#btnAddTour').addClass('d-none');
+                $('#adminBadge').addClass('d-none');
+                $('#btnUserManage').addClass('d-none'); // ẨN NÚT QUẢN LÝ USER
+            }
+
+            fetchTours();
+            renderFavorites();
+            renderCart();
+        }
+
+        // --- USER MANAGEMENT FUNCTIONS (NEW) ---
+        function openUserManager() {
+            if (appState.currentUser.email !== ADMIN_EMAIL) {
+                showToast("Bạn không có quyền truy cập!", "danger");
+                return;
+            }
+
+            $('#userModal').modal('show');
+            $('#userListBody').empty();
+            $('#userLoading').removeClass('d-none');
+
+            $.get(ENDPOINT_USERS).done(users => {
+                $('#userLoading').addClass('d-none');
+                if (users.length === 0) {
+                    $('#userListBody').html('<tr><td colspan="5">Không có người dùng nào.</td></tr>');
+                    return;
+                }
+
+                let html = '';
+                users.forEach((u, index) => {
+                    const isAdmin = u.email === ADMIN_EMAIL;
+                    const roleBadge = isAdmin ? '<span class="badge bg-warning text-dark">Admin</span>' : '<span class="badge bg-secondary">User</span>';
+                    const avatarLetter = u.name.charAt(0).toUpperCase();
+                    
+                    // Không cho phép xóa chính mình (Admin đang đăng nhập)
+                    const deleteBtn = (u.email === appState.currentUser.email) 
+                        ? `<button class="btn btn-sm btn-light" disabled>Current</button>`
+                        : `<button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.id}')"><i class="bi bi-trash"></i> Xóa</button>`;
+
+                    html += `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="user-avatar">${avatarLetter}</div>
+                                    <span class="fw-bold">${u.name}</span>
+                                </div>
+                            </td>
+                            <td>${u.email}</td>
+                            <td>${roleBadge}</td>
+                            <td>${deleteBtn}</td>
+                        </tr>
+                    `;
+                });
+                $('#userListBody').html(html);
+
+            }).fail(() => {
+                $('#userLoading').addClass('d-none');
+                $('#userListBody').html('<tr><td colspan="5" class="text-danger">Lỗi tải dữ liệu!</td></tr>');
+            });
+        }
+
+        function deleteUser(id) {
+            if (!confirm("Bạn có chắc chắn muốn xóa người dùng này? Hành động này không thể hoàn tác.")) return;
+
+            $.ajax({
+                url: `${ENDPOINT_USERS}/${id}`,
+                type: 'DELETE',
+                success: () => {
+                    showToast("Đã xóa người dùng!", "success");
+                    openUserManager(); // Reload list
+                },
+                error: () => {
+                    showToast("Lỗi khi xóa người dùng!", "danger");
+                }
+            });
+        }
+
+        // --- API & DATA ---
+       function fetchTours() {
+        $('#loading').show();
+        $('#tourList').hide();
+        
+        $.get(ENDPOINT_TOURS)
+            .done(function(data) {
+                appState.tours = data; 
+                
+                // Logic lấy user/cart giữ nguyên như cũ
+                if (appState.currentUser) {
+                    const favKey = getUserKey('favTours');
+                    const savedFavs = localStorage.getItem(favKey);
+                    appState.favorites = savedFavs ? JSON.parse(savedFavs) : [];
+
+                    const cartKey = getUserKey('cartItems');
+                    const savedCart = localStorage.getItem(cartKey);
+                    appState.cart = savedCart ? JSON.parse(savedCart) : [];
+                } else {
+                    appState.favorites = [];
+                    appState.cart = [];
+                }
+                
+                filterAndRender();
+                renderCart();
+                renderFavorites();
+                
+                // QUAN TRỌNG: Tải xong thì ẩn loading và hiện danh sách
+                $('#loading').hide();
+                $('#tourList').show();
+            })
+            .fail(function(jqXHR, textStatus, errorThrown) {
+                // Nếu lỗi thì báo ra màn hình console và giao diện
+                console.error("Lỗi tải API:", textStatus, errorThrown);
+                $('#loading').html('<div class="text-danger mt-3">❌ Lỗi kết nối API! Vui lòng kiểm tra lại đường dẫn hoặc Internet.</div>');
+            });
+    }
+        function filterAndRender() {
+            const search = $('#searchInput').val().toLowerCase();
+            const maxDuration = parseFloat($('#durationInput').val());
+            const location = $('#locationFilter').val().toLowerCase();
+            const maxPrice = parseFloat($('#priceFilter').val());
+
+            const filtered = appState.tours.filter(item => {
+                const name = (item.name || '').toLowerCase();
+                const loc = (item.location || '').toLowerCase();
+                const price = parseFloat(item.price);
+                const duration = parseFloat(item.rating); 
+                return name.includes(search) && (!location || loc.includes(location)) && 
+                       (!maxPrice || price <= maxPrice) && (!maxDuration || duration <= maxDuration);
+            });
+            renderGrid(filtered);
+        }
+
+        // === UPDATED: RENDER GRID WITH CLICK EVENT ===
+        function renderGrid(data) {
+            const container = $('#tourList');
+            container.empty();
+            if(data.length === 0) {
+                container.html('<div class="col-12 text-center text-muted"><i>Không tìm thấy Tour nào</i></div>');
+                return;
+            }
+
+            const isAdmin = appState.currentUser && appState.currentUser.email === ADMIN_EMAIL;
+
+            data.forEach(item => {
+                const isFav = appState.favorites.some(f => f.id === item.id);
+                const heartClass = isFav ? 'active' : '';
+                const imgSrc = item.image || item.imageUrl || 'https://via.placeholder.com/300?text=No+Image';
+
+                let adminActions = isAdmin ? `
+                    <div class="mt-2" onclick="event.stopPropagation()">
+                        <button class="btn btn-sm btn-outline-primary" onclick="openModal('${item.id}')"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteTour('${item.id}')"><i class="bi bi-trash"></i></button>
+                    </div>` : '';
+
+                const html = `
+                    <div class="col fade-in">
+                        <div class="card h-100 tour-card shadow-sm" onclick="showTourDetail('${item.id}')">
+                            <span class="badge bg-danger position-absolute top-0 start-0 m-2 badge-price">$${item.price}</span>
+                            
+                            <div class="action-buttons">
+                                <button class="btn-action btn-heart ${heartClass}" onclick="toggleFavorite(event, '${item.id}')" title="Yêu thích">
+                                    <i class="bi bi-heart-fill"></i>
+                                </button>
+                                <button class="btn-action btn-cart" onclick="addToCart(event, '${item.id}')" title="Thêm vào giỏ">
+                                    <i class="bi bi-cart-plus-fill"></i>
+                                </button>
+                            </div>
+                            
+                            <img src="${imgSrc}" class="card-img-top" alt="${item.name}" onerror="this.src='https://via.placeholder.com/300'">
+                            <div class="card-body d-flex flex-column">
+                                <h6 class="card-title fw-bold text-truncate">${item.name}</h6>
+                                <p class="card-text small text-muted mb-1"><i class="bi bi-geo-alt-fill text-success"></i> ${item.location}</p>
+                                <div class="mt-auto pt-2 border-top d-flex flex-column small">
+                                    <span><i class="bi bi-clock"></i> ${item.rating} ngày</span>
+                                    ${adminActions}
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                container.append(html);
+            });
+        }
+
+        // === NEW FEATURE: SHOW TOUR DETAIL POPUP ===
+        function showTourDetail(id) {
+            const tour = appState.tours.find(t => t.id === id);
+            if(!tour) return;
+
+            // Populate Modal Data
+            $('#detailImg').attr('src', tour.image || tour.imageUrl || 'https://via.placeholder.com/400');
+            $('#detailTitle').text(tour.name);
+            $('#detailLocation').text(tour.location);
+            $('#detailPrice').text('$' + tour.price);
+            $('#detailDuration').text(tour.rating + ' ngày');
+
+            // Setup Add to Cart Button inside Modal
+            $('#btnDetailAddToCart').off('click').on('click', function() {
+                // Mock an event object to reuse existing addToCart logic
+                addToCart({ stopPropagation: () => {} }, id);
+                bootstrap.Modal.getInstance(document.getElementById('detailModal')).hide();
+            });
+
+            // Show Modal
+            new bootstrap.Modal(document.getElementById('detailModal')).show();
+        }
+
+        // --- CART FUNCTIONS ---
+        function addToCart(e, id) {
+            e.stopPropagation();
+            const existingItem = appState.cart.find(c => c.id === id);
+            
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                appState.cart.push({ id: id, quantity: 1, note: "" }); 
+            }
+            
+            updateCartStorage();
+            renderCart();
+            showToast(dictionary[appState.lang].msgAddedCart);
+            
+            $('#cartCount').addClass('animate__animated animate__bounceIn');
+            setTimeout(() => $('#cartCount').removeClass('animate__animated animate__bounceIn'), 1000);
+        }
+
+        function removeFromCart(id) {
+            appState.cart = appState.cart.filter(c => c.id !== id);
+            updateCartStorage();
+            renderCart();
+        }
+
+        function updateCartNote(id, value) {
+            const item = appState.cart.find(c => c.id === id);
+            if(item) {
+                item.note = value;
+                updateCartStorage();
+            }
+        }
+
+        function updateCartStorage() {
+            const key = getUserKey('cartItems');
+            if (key) {
+                localStorage.setItem(key, JSON.stringify(appState.cart));
+            }
+        }
+
+        function renderCart() {
+            const container = $('#cartListContainer');
+            const countBadge = $('#cartCount');
+            const totalDisplay = $('#cartTotalDisplay');
+            container.empty();
+            countBadge.text(appState.cart.reduce((acc, item) => acc + item.quantity, 0));
+
+            let total = 0;
+
+            if (appState.cart.length === 0) {
+                container.html(`<div class="text-center text-muted mt-5"><i class="bi bi-cart-x display-4"></i><p>${dictionary[appState.lang].emptyCart}</p></div>`);
+                totalDisplay.text('$0');
+                return;
+            }
+
+            appState.cart.forEach(cartItem => {
+                const tour = appState.tours.find(t => t.id === cartItem.id);
+                if (!tour) return;
+
+                const itemTotal = parseFloat(tour.price) * cartItem.quantity;
+                total += itemTotal;
+                const imgSrc = tour.image || tour.imageUrl;
+
+                const html = `
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-2">
+                            <div class="d-flex gap-2 mb-2">
+                                <img src="${imgSrc}" class="cart-item-img" onerror="this.src='https://via.placeholder.com/60'">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0 small fw-bold text-truncate" style="max-width: 150px;">${tour.name}</h6>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-danger">$${tour.price}</small>
+                                        <small class="fw-bold">x${cartItem.quantity}</small>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm text-danger" onclick="removeFromCart('${cartItem.id}')"><i class="bi bi-trash"></i></button>
+                            </div>
+                            <input type="text" class="form-control form-control-sm bg-light" 
+                                placeholder="${dictionary[appState.lang].notePlaceholder}" 
+                                value="${cartItem.note || ''}" 
+                                onchange="updateCartNote('${cartItem.id}', this.value)">
+                        </div>
+                    </div>`;
+                container.append(html);
+            });
+
+            totalDisplay.text(`$${total.toLocaleString()}`);
+        }
+
+        function handleCheckout() {
+            if (appState.cart.length === 0) {
+                showToast(dictionary[appState.lang].emptyCart, 'warning');
+                return;
+            }
+
+            let total = 0;
+            let htmlItems = '<ul class="list-group list-group-flush">';
+            
+            appState.cart.forEach(cartItem => {
+                const tour = appState.tours.find(t => t.id === cartItem.id);
+                if(tour) {
+                    const itemTotal = parseFloat(tour.price) * cartItem.quantity;
+                    total += itemTotal;
+                    htmlItems += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0 bg-transparent">
+                            <div>
+                                <span class="fw-bold">${tour.name}</span> <small class="text-muted">x${cartItem.quantity}</small>
+                                ${cartItem.note ? `<br><small class="text-muted fst-italic"><i class="bi bi-pen"></i> ${cartItem.note}</small>` : ''}
+                            </div>
+                            <span class="text-success fw-bold">$${itemTotal.toLocaleString()}</span>
+                        </li>
+                    `;
+                }
+            });
+            htmlItems += '</ul>';
+
+            $('#invoiceTotal').text(`$${total.toLocaleString()}`);
+            $('#invoiceId').text(`TRV-${Date.now().toString().slice(-6)}`);
+            $('#invoiceItems').html(htmlItems);
+
+            const cartElement = document.getElementById('offcanvasCart');
+            const cartOffcanvas = bootstrap.Offcanvas.getInstance(cartElement) || new bootstrap.Offcanvas(cartElement);
+            cartOffcanvas.hide();
+
+            const invoiceModal = new bootstrap.Modal(document.getElementById('invoiceModal'));
+            invoiceModal.show();
+        }
+
+        function clearCartUI() {
+            appState.cart = [];
+            updateCartStorage();
+            renderCart();
+            showToast(dictionary[appState.lang].cartCleared, 'success');
+        }
+
+        // --- AUTH LOGIC ---
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = $('#loginEmail').val().trim();
+            const pass = $('#loginPass').val().trim();
+            $('#loading').show();
+            
+            $.get(ENDPOINT_USERS).done(users => {
+                const user = users.find(u => u.email === email && u.password === pass);
+                if (user) {
+                    appState.currentUser = user;
+                    localStorage.setItem('currentUser', JSON.stringify(user));
+                    showToast(`${dictionary[appState.lang].msgWelcome}, ${user.name}!`);
+                    showMainApp();
+                } else {
+                    showToast(dictionary[appState.lang].msgLoginFail, 'danger');
+                }
+            }).fail(() => {
+                // Fallback for demo if API fails
+                 if (email === ADMIN_EMAIL && pass === "123") {
+                    appState.currentUser = { name: "Admin Manager", email: email };
+                    localStorage.setItem('currentUser', JSON.stringify(appState.currentUser));
+                    showMainApp();
+                } else {
+                    showToast("Lỗi kết nối server hoặc sai mật khẩu", 'danger');
+                }
+            })
+            .always(() => $('#loading').hide());
+        }
+
+        // === FIXED: DUPLICATE EMAIL CHECK LOGIC ===
+        function handleRegister(e) {
+            e.preventDefault();
+            const email = $('#regEmail').val().trim();
+            const name = $('#regName').val().trim();
+            const password = $('#regPass').val().trim();
+
+            if(!email || !name || !password) {
+                showToast("Vui lòng điền đầy đủ thông tin!", "warning");
+                return;
+            }
+
+            // 1. Fetch toàn bộ users để kiểm tra trùng
+            $.get(ENDPOINT_USERS).done(users => {
+                const isDuplicate = users.some(u => u.email === email);
+                
+                if (isDuplicate) {
+                    // 2. Nếu trùng thì báo lỗi
+                    showToast("Email này đã được sử dụng! Vui lòng dùng email khác.", "danger");
+                } else {
+                    // 3. Nếu không trùng -> tạo user mới
+                    const newUser = { 
+                        name: name, 
+                        email: email, 
+                        password: password, 
+                        createdAt: new Date().toISOString() 
+                    };
+
+                    $.post(ENDPOINT_USERS, newUser).done(() => {
+                        showToast(dictionary[appState.lang].msgRegSuccess);
+                        // Reset form
+                        $('#registerForm')[0].reset();
+                        // Chuyển qua tab login
+                        $('#authTabs button[data-bs-target="#loginTab"]').click();
+                    }).fail(() => showToast("Lỗi đăng ký!", 'danger'));
+                }
+            }).fail(() => showToast("Lỗi kết nối server khi kiểm tra email!", 'danger'));
+        }
+
+       function logout() {
+    localStorage.removeItem('currentUser');
+    appState.currentUser = null;
+    appState.cart = [];       // Reset RAM
+    appState.favorites = [];  // Reset RAM
+    location.reload();
+}
+
+        // --- UI UTILS ---
+        function showToast(msg, type = 'primary') {
+            $('#toastMessage').text(msg);
+            const toastEl = $('#liveToast');
+            toastEl.removeClass('text-bg-primary text-bg-danger text-bg-success text-bg-warning').addClass(`text-bg-${type}`);
+            const toast = new bootstrap.Toast(toastEl[0]);
+            toast.show();
+        }
+
+        function toggleTheme() {
+            appState.theme = appState.theme === 'light' ? 'dark' : 'light';
+            applyTheme(appState.theme);
+        }
+
+        function applyTheme(theme) {
+            $('html').attr('data-bs-theme', theme);
+            localStorage.setItem('appTheme', theme);
+            const icon = theme === 'dark' ? 'bi-sun-fill' : 'bi-moon-stars-fill';
+            $('#themeToggle i').attr('class', `bi ${icon}`);
+        }
+
+        function setLang(lang) {
+            appState.lang = lang;
+            applyLanguage(lang);
+            filterAndRender();
+            renderCart();
+        }
+
+        function applyLanguage(lang) {
+            localStorage.setItem('appLang', lang);
+            $('[data-i18n]').each(function() {
+                const key = $(this).data('i18n');
+                $(this).text(dictionary[lang][key] || key);
+            });
+            $('#btn-vi, #btn-en').removeClass('active');
+            $(`#btn-${lang}`).addClass('active');
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        // --- FAVORITES & NOTES ---
+        function toggleFavorite(e, id) {
+            e.stopPropagation(); // Ngăn chặn mở Popup chi tiết
+            const index = appState.favorites.findIndex(f => f.id === id);
+            if (index === -1) {
+                const tour = appState.tours.find(t => t.id === id);
+                if(tour) {
+                    appState.favorites.push({ id: id, name: tour.name, note: "" }); // Lưu object nhỏ gọn
+                    showToast(dictionary[appState.lang].msgAddedFav);
+                }
+            } else {
+                appState.favorites.splice(index, 1);
+            }
+           // SỬA ĐOẠN LƯU:
+    const key = getUserKey('favTours');
+    if (key) {
+        localStorage.setItem(key, JSON.stringify(appState.favorites));
+    }
+            filterAndRender();
+            renderFavorites();
+        }
+
+        function renderFavorites() {
+            const container = $('#favListContainer');
+            $('#favCount').text(appState.favorites.length);
+            container.empty();
+
+            if (appState.favorites.length === 0) {
+                container.html('<p class="text-center text-muted small">Chưa có tour yêu thích</p>');
+                return;
+            }
+
+            appState.favorites.forEach(fav => {
+                const tour = appState.tours.find(c => c.id === fav.id);
+                if (!tour) return;
+                
+                const html = `
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-2 d-flex gap-2 align-items-center">
+                            <img src="${tour.image || tour.imageUrl}" class="rounded" width="50" height="50" style="object-fit:cover">
+                            <div class="flex-grow-1 overflow-hidden">
+                                <h6 class="mb-0 text-truncate small fw-bold">${tour.name}</h6>
+                                <small class="text-danger">$${tour.price}</small>
+                                ${fav.note ? `<div class="text-muted small fst-italic"><i class="bi bi-sticky"></i> ${fav.note}</div>` : ''}
+                            </div>
+                            <div class="d-flex flex-column gap-1">
+                                <button class="btn btn-sm btn-outline-secondary py-0" onclick="openNoteModal('${fav.id}')"><i class="bi bi-journal-text"></i></button>
+                                <button class="btn btn-sm btn-outline-danger py-0" onclick="toggleFavorite(event, '${fav.id}')"><i class="bi bi-x"></i></button>
+                            </div>
+                        </div>
+                    </div>`;
+                container.append(html);
+            });
+        }
+
+        function openNoteModal(id) {
+            const fav = appState.favorites.find(f => f.id === id);
+            $('#noteTourId').val(id);
+            $('#noteContent').val(fav.note || '');
+            $('#noteModal').modal('show');
+        }
+
+        function saveNote() {
+            const id = $('#noteTourId').val();
+            const note = $('#noteContent').val();
+            const fav = appState.favorites.find(f => f.id === id);
+        if(fav) {
+        fav.note = note;
+        
+        // SỬA ĐOẠN LƯU:
+        const key = getUserKey('favTours');
+        if (key) {
+            localStorage.setItem(key, JSON.stringify(appState.favorites));
+        }
+
+        renderFavorites();
+        $('#noteModal').modal('hide');
+        }
+    }
+        // --- ADMIN CRUD ---
+        function openModal(id = null) {
+            $('#tourId').val(id || '');
+            $('#modalTitle').text(id ? 'Chỉnh sửa Tour' : 'Thêm Tour Mới');
+            if(id) {
+                const item = appState.tours.find(c => c.id === id);
+                if(item) {
+                    $('#inpName').val(item.name);
+                    $('#inpLocation').val(item.location);
+                    $('#inpImage').val(item.image || item.imageUrl);
+                    $('#inpPrice').val(item.price);
+                    $('#inpRating').val(item.rating);
+                }
+            } else {
+                $('#tourModal input').val('');
+            }
+            new bootstrap.Modal(document.getElementById('tourModal')).show();
+        }
+
+        function deleteTour(id) {
+            if(confirm('Xóa tour này?')) {
+                $.ajax({ url: `${ENDPOINT_TOURS}/${id}`, type: 'DELETE', success: () => { fetchTours(); showToast(dictionary[appState.lang].msgDeleted, "danger"); }});
+            }
+        }
+        
+        function saveTour() {
+            const id = $('#tourId').val();
+            const data = { 
+                name: $('#inpName').val(), 
+                location: $('#inpLocation').val(), 
+                image: $('#inpImage').val(), 
+                imageUrl: $('#inpImage').val(), 
+                price: $('#inpPrice').val(), 
+                rating: $('#inpRating').val() 
+            };
+            
+            $.ajax({ 
+                url: id ? `${ENDPOINT_TOURS}/${id}` : ENDPOINT_TOURS, 
+                method: id ? 'PUT' : 'POST', 
+                data: data, 
+                success: () => { 
+                    bootstrap.Modal.getInstance(document.getElementById('tourModal')).hide();
+                    fetchTours(); 
+                    showToast(dictionary[appState.lang].msgSaved, "success"); 
+                }
+            });
+        }
+
+        // Hàm tạo key riêng biệt cho từng user
+function getUserKey(keyName) {
+    if (!appState.currentUser || !appState.currentUser.email) return null;
+    return `${keyName}_${appState.currentUser.email}`;
+}
+    </script>
+</body>
+</html>
