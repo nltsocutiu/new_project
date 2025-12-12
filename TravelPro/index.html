@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="vi" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TravelPro - Chi tiết Tour & Đặt Vé</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-light">
+
+    <div id="authSection" class="auth-container fade-in">
+        <div class="card auth-card shadow-lg border-0">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <h2 class="text-success fw-bold"><i class="bi bi-airplane-engines-fill"></i> TravelPro</h2>
+                    <p class="text-muted small">Hệ thống quản lý & Đặt Tour</p>
+                </div>
+                <ul class="nav nav-pills nav-fill mb-3" id="authTabs" role="tablist">
+                    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#loginTab">Đăng nhập</button></li>
+                    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#registerTab">Đăng ký</button></li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="loginTab">
+                        <form id="loginForm">
+                            <div class="mb-3"><label class="form-label">Email</label><input type="email" class="form-control" id="loginEmail" required placeholder="admin@gmail.com"></div>
+                            <div class="mb-3"><label class="form-label">Mật khẩu</label><input type="password" class="form-control" id="loginPass" required placeholder="123"></div>
+                            <button type="submit" class="btn btn-success w-100 fw-bold py-2">Đăng nhập ngay</button>
+                            <div class="mt-3 text-center small text-muted">*Admin: admin@gmail.com / 123</div>
+                        </form>
+                    </div>
+                    <div class="tab-pane fade" id="registerTab">
+                        <form id="registerForm">
+                            <div class="mb-3"><label class="form-label">Họ tên</label><input type="text" class="form-control" id="regName" required></div>
+                            <div class="mb-3"><label class="form-label">Email</label><input type="email" class="form-control" id="regEmail" required></div>
+                            <div class="mb-3"><label class="form-label">Mật khẩu</label><input type="password" class="form-control" id="regPass" required></div>
+                            <button type="submit" class="btn btn-primary w-100 fw-bold py-2">Tạo tài khoản</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainApp" class="d-none-custom">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-success sticky-top shadow-sm">
+            <div class="container">
+                <a class="navbar-brand fw-bold" href="#"><i class="bi bi-airplane-engines-fill me-2"></i>TravelPro</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto"></ul>
+                    <div class="d-flex align-items-center gap-3 flex-wrap mt-2 mt-lg-0">
+                        <span class="text-white small d-none d-lg-block">Hi, <b id="userNameDisplay">User</b> <span id="adminBadge" class="badge bg-warning text-dark d-none">ADMIN</span></span>
+                        
+                        <button class="btn btn-sm btn-outline-light d-none" id="btnUserManage" onclick="openUserManager()">
+                            <i class="bi bi-people-fill"></i> Users
+                        </button>
+
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-light active" onclick="setLang('vi')" id="btn-vi">VN</button>
+                            <button class="btn btn-outline-light" onclick="setLang('en')" id="btn-en">EN</button>
+                        </div>
+                        <button class="btn btn-sm btn-outline-light rounded-circle" id="themeToggle"><i class="bi bi-moon-stars-fill"></i></button>
+
+                        <button class="btn btn-warning position-relative rounded-pill px-3 btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasFav">
+                            <i class="bi bi-heart-fill"></i> 
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="favCount">0</span>
+                        </button>
+
+                        <button class="btn btn-primary position-relative rounded-pill px-3 btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCart">
+                            <i class="bi bi-cart-fill"></i> 
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="cartCount">0</span>
+                        </button>
+
+                        <button class="btn btn-sm btn-danger rounded-pill px-3" onclick="logout()"><i class="bi bi-box-arrow-right"></i></button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container py-4">
+            <div class="card shadow-sm mb-4 fade-in">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold" data-i18n="search">Tìm Tour</label>
+                            <div class="input-group"><span class="input-group-text"><i class="bi bi-search"></i></span><input type="text" id="searchInput" class="form-control" placeholder="..."></div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold" data-i18n="duration">Thời lượng (ngày)</label>
+                            <input type="number" id="durationInput" class="form-control" placeholder="Max...">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold" data-i18n="location">Địa điểm</label>
+                            <select id="locationFilter" class="form-select">
+                                <option value="">Tất cả</option>
+                                <option value="Hà Nội">Hà Nội</option>
+                                <option value="HCM">Hồ Chí Minh</option>
+                                <option value="Đà Nẵng">Đà Nẵng</option>
+                                <option value="Đà Lạt">Đà Lạt</option>
+                                <option value="Phú Quốc">Phú Quốc</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold" data-i18n="priceMax">Giá tối đa</label>
+                            <input type="number" id="priceFilter" class="form-control">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button class="btn btn-success w-100 fw-bold d-none" id="btnAddTour" onclick="openModal()"><i class="bi bi-plus-lg"></i> <span data-i18n="addTour">Thêm Tour</span></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="loading" class="text-center py-5">
+                <div class="spinner-grow text-success" role="status"></div>
+                <p class="mt-2 text-muted" data-i18n="loading">Đang tải dữ liệu Tour...</p>
+            </div>
+
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4" id="tourList"></div>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasFav">
+        <div class="offcanvas-header bg-warning text-dark">
+            <h5 class="offcanvas-title fw-bold"><i class="bi bi-bookmark-heart-fill"></i> <span data-i18n="savedTours">Tour quan tâm</span></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body bg-light">
+            <div id="favListContainer" class="d-flex flex-column gap-3"></div>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasCart">
+        <div class="offcanvas-header bg-primary text-white">
+            <h5 class="offcanvas-title fw-bold"><i class="bi bi-cart-check-fill"></i> <span data-i18n="yourCart">Giỏ hàng của bạn</span></h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body bg-light d-flex flex-column">
+            <div id="cartListContainer" class="flex-grow-1 d-flex flex-column gap-3 overflow-auto pb-3"></div>
+            <div class="border-top pt-3 mt-auto">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="fw-bold" data-i18n="total">Tổng tiền:</span>
+                    <h4 class="fw-bold text-success mb-0" id="cartTotalDisplay">$0</h4>
+                </div>
+                <button class="btn btn-success w-100 py-2 fw-bold" onclick="handleCheckout()">
+                    <i class="bi bi-credit-card-2-front-fill"></i> <span data-i18n="checkout">Thanh toán ngay</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="tourModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="modalTitle">Thông tin Tour</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="tourId">
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label class="form-label" data-i18n="tourName">Tên Tour</label><input type="text" id="inpName" class="form-control" required placeholder="VD: Tour Đà Nẵng 3N2Đ"></div>
+                        <div class="col-md-6 mb-3"><label class="form-label" data-i18n="location">Địa điểm</label><input type="text" id="inpLocation" class="form-control" required></div>
+                    </div>
+                    <div class="mb-3"><label class="form-label" data-i18n="image">Hình ảnh (URL)</label><input type="text" id="inpImage" class="form-control" placeholder="https://..."></div>
+                    <div class="row">
+                        <div class="col-6 mb-3"><label class="form-label" data-i18n="price">Giá ($)</label><input type="number" id="inpPrice" class="form-control" required></div>
+                        <div class="col-6 mb-3"><label class="form-label" data-i18n="duration">Thời lượng (ngày)</label><input type="number" id="inpRating" class="form-control" required placeholder="Nhập số ngày..."></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="close">Đóng</button>
+                    <button type="button" class="btn btn-success" onclick="saveTour()" data-i18n="save">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title"><i class="bi bi-people-fill"></i> Quản lý Người dùng</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0 text-center align-middle">
+                            <thead class="table-dark sticky-top">
+                                <tr><th>#</th><th>Họ tên</th><th>Email</th><th>Vai trò</th><th>Hành động</th></tr>
+                            </thead>
+                            <tbody id="userListBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="userLoading" class="text-center py-4 d-none"><div class="spinner-border text-primary" role="status"></div></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="detailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-body p-0">
+                    <button type="button" class="btn-close position-absolute top-0 end-0 m-3 bg-white p-2 shadow-sm" style="z-index: 10;" data-bs-dismiss="modal"></button>
+                    <div class="row g-0">
+                        <div class="col-md-6">
+                            <img id="detailImg" src="" class="detail-img h-100 rounded-start" alt="Tour Image" onerror="this.src='https://via.placeholder.com/400'">
+                        </div>
+                        <div class="col-md-6 p-4 d-flex flex-column">
+                            <span class="badge bg-warning text-dark w-auto align-self-start mb-2"><i class="bi bi-star-fill"></i> Tour Hot</span>
+                            <h3 class="fw-bold mb-3" id="detailTitle">Title</h3>
+                            <div class="mb-3 text-muted"><i class="bi bi-geo-alt-fill text-danger"></i> <span id="detailLocation">Location</span></div>
+                            <p class="text-secondary flex-grow-1">Khám phá trải nghiệm tuyệt vời với hành trình được thiết kế đặc biệt.</p>
+                            <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded">
+                                <div><small class="text-muted d-block">Thời lượng</small><strong id="detailDuration">0 ngày</strong></div>
+                                <div><small class="text-muted d-block">Giá vé</small><strong class="text-success fs-4" id="detailPrice">$0</strong></div>
+                            </div>
+                            <button class="btn btn-primary w-100 fw-bold py-2" id="btnDetailAddToCart"><i class="bi bi-cart-plus"></i> Thêm vào giỏ ngay</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="noteModal" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header"><h6 class="modal-title" data-i18n="noteTitle">Ghi chú yêu thích</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="noteTourId">
+                    <textarea id="noteContent" class="form-control" rows="3" placeholder="Ghi chú cá nhân..."></textarea>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-primary btn-sm w-100" onclick="saveNote()" data-i18n="saveNote">Lưu ghi chú</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="invoiceModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header invoice-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-check-circle-fill"></i> Thanh toán thành công!</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="clearCartUI()"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-4">
+                        <h2 class="text-success fw-bold" id="invoiceTotal">$0</h2>
+                        <p class="text-muted small">Mã đơn: <span id="invoiceId">#</span></p>
+                    </div>
+                    <h6 class="fw-bold mb-3 border-bottom pb-2">Chi tiết đơn hàng:</h6>
+                    <div id="invoiceItems" class="small mb-3"></div>
+                    <div class="dashed-line"></div>
+                    <div class="alert alert-success small mb-0"><i class="bi bi-info-circle"></i> Cảm ơn bạn đã đặt tour! Thông tin vé đã được gửi về email của bạn.</div>
+                </div>
+                <div class="modal-footer justify-content-center"><button type="button" class="btn btn-success px-4" data-bs-dismiss="modal" onclick="clearCartUI()">Hoàn tất</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="liveToast" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage">Thông báo</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/script.js"></script>
+</body>
+</html>
